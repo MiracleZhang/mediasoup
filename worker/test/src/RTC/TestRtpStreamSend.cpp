@@ -6,6 +6,10 @@
 #include "RTC/RtpStreamSend.hpp"
 #include <vector>
 
+	// TODO: TMP
+	#define MS_CLASS "TestRtpStreamSend.cpp"
+	#include "Logger.hpp"
+
 using namespace RTC;
 
 SCENARIO("NACK and RTP packets retransmission", "[rtp][rtcp]")
@@ -19,6 +23,9 @@ SCENARIO("NACK and RTP packets retransmission", "[rtp][rtcp]")
 
 		void OnRtpStreamRetransmitRtpPacket(RtpStreamSend* /*rtpStream*/, RtpPacket* packet) override
 		{
+				// TODO
+				MS_ERROR("----------------- TEST: OnRtpStreamRetransmitRtpPacket() seq:%" PRIu16, packet->GetSequenceNumber());
+
 			this->retransmittedPackets.push_back(packet);
 		}
 
@@ -96,16 +103,16 @@ SCENARIO("NACK and RTP packets retransmission", "[rtp][rtcp]")
 		// Create a RtpStreamSend.
 		// RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 200);
 			// TODO: Remove when bug fixed.
-			RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 8);
+			RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 5);
 
 		// Receive all the packets in order into the stream.
 		stream->ReceivePacket(packet1);
-		// stream->ReceivePacket(packet1); // Receive duplicated packet.
+		stream->ReceivePacket(packet1); // Receive duplicated packet.
 		stream->ReceivePacket(packet2);
-		// stream->ReceivePacket(packet2); // Receive duplicated packet.
-		// stream->ReceivePacket(packet2); // Receive duplicated packet again.
+		stream->ReceivePacket(packet2); // Receive duplicated packet.
+		stream->ReceivePacket(packet2); // Receive duplicated packet again.
 		stream->ReceivePacket(packet3);
-		// stream->ReceivePacket(packet1); // Receive duplicated packet again.
+		stream->ReceivePacket(packet1); // Receive duplicated packet again.
 		stream->ReceivePacket(packet4);
 		stream->ReceivePacket(packet5);
 

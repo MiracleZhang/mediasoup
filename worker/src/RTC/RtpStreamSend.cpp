@@ -38,7 +38,7 @@ namespace RTC
 		  this->vctr.size() > 0 && this->maxSize > 0 && this->currentSize > 0,
 		  "Must not read Last() from empty Buffer");
 
-		return this->vctr[(this->startIdx + this->currentSize) % this->vctr.size()];
+		return this->vctr[(this->startIdx + this->currentSize) % this->vctr.size() - 1];
 	}
 
 	RtpStreamSend::BufferItem& RtpStreamSend::Buffer::operator[](size_t idx)
@@ -433,17 +433,6 @@ namespace RTC
 			return;
 		}
 
-		auto* newItem = this->buffer.OrderedInsertBySeq(bufferItem);
-
-		if (newItem)
-			MS_ERROR("newItem.seq:%" PRIu16, newItem->seq);
-		else
-			MS_ERROR("newItem:nullptr");
-
-		// Packet already stored, nothing to do.
-		if (newItem == nullptr)
-			return;
-
 		uint8_t* store{ nullptr };
 
 		if (this->buffer.GetSize() <= this->storage.size())
@@ -473,6 +462,17 @@ namespace RTC
 			this->buffer.TrimFront();
 		}
 
+		auto* newItem = this->buffer.OrderedInsertBySeq(bufferItem);
+
+		if (newItem)
+			MS_ERROR("newItem.seq:%" PRIu16, newItem->seq);
+		else
+			MS_ERROR("newItem:nullptr");
+
+		// Packet already stored, nothing to do.
+		if (newItem == nullptr)
+			return;
+
 		// Update the new buffer item so it points to the cloned packed.
 		newItem->packet = packet->Clone(store);
 
@@ -496,8 +496,6 @@ namespace RTC
 	{
 		MS_TRACE();
 
-		MS_ERROR("****** 1");
-
 		// If NACK is not supported, exit.
 		if (!this->params.useNack)
 		{
@@ -506,13 +504,9 @@ namespace RTC
 			return;
 		}
 
-		MS_ERROR("****** 2");
-
 		// If the buffer is empty just return.
 		if (this->buffer.Empty())
 			return;
-
-		MS_ERROR("****** 3");
 
 		uint16_t firstSeq       = seq;
 		uint16_t lastSeq        = firstSeq + MaxRequestedPackets - 1;
@@ -529,24 +523,22 @@ namespace RTC
 		{
 			MS_WARN_TAG(
 			  rtx,
-			  "requested packet range not in the buffer [seq:%" PRIu16 ", bufferFirstseq:%" PRIu16
-			  ", bufferLastseq:%" PRIu16 "]",
+			  "requested packet range not in the buffer [seq:%" PRIu16 ", bufferFirstSeq:%" PRIu16
+			  ", bufferLastSeq:%" PRIu16 "]",
 			  seq,
 			  bufferFirstSeq,
 			  bufferLastSeq);
 
 			// TODO
 			MS_ERROR(
-			  "requested packet range not in the buffer [seq:%" PRIu16 ", bufferFirstseq:%" PRIu16
-			  ", bufferLastseq:%" PRIu16 "]",
+			  "requested packet range not in the buffer [seq:%" PRIu16 ", bufferFirstSeq:%" PRIu16
+			  ", bufferLastSeq:%" PRIu16 "]",
 			  seq,
 			  bufferFirstSeq,
 			  bufferLastSeq);
 
 			return;
 		}
-
-		MS_ERROR("****** 4");
 
 		// Look for each requested packet.
 		uint64_t now = DepLibUV::GetTime();
@@ -567,10 +559,10 @@ namespace RTC
 
 			if (requested)
 			{
-				size_t idx{ 0 };
-
-				for (; idx < this->buffer.GetSize(); ++idx)
+				for (size_t idx{ 0 }; idx < this->buffer.GetSize(); ++idx)
 				{
+					MS_ERROR("_____(iterating buffer)______ idx:%zu, buffer.GetSize():%zu", idx, this->buffer.GetSize());
+
 					auto currentSeq = this->buffer[idx].seq;
 
 					// Found.
