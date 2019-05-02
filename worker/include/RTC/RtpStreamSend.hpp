@@ -4,7 +4,6 @@
 #include "Utils.hpp"
 #include "RTC/RtpDataCounter.hpp"
 #include "RTC/RtpStream.hpp"
-#include <list>
 #include <vector>
 
 namespace RTC
@@ -27,6 +26,46 @@ namespace RTC
 			uint64_t resentAtTime{ 0 }; // Last time this packet was resent.
 			uint8_t sentTimes{ 0 };     // Number of times this packet was resent.
 			bool rtxEncoded{ false };   // Whether the packet has already been RTX encoded.
+		};
+
+	private:
+		class Buffer
+		{
+		public:
+			Buffer(size_t bufferSize);
+
+			bool Empty() const;
+			size_t GetSize() const;
+			// Access the first item in the vector.
+			const BufferItem& First() const;
+			// Access the last item in the vector.
+			const BufferItem& Last() const;
+			// Access an item in the vector by index relative to startIdx.
+			BufferItem& operator[](size_t idx);
+			// Access an item in the vector by packet's sequence number (if present).
+			BufferItem* GetBySeq(uint16_t seq);
+			// Add new item at the end if there is room.
+			bool PushBack(const BufferItem& item);
+			// Remove the first item from the vector.
+			void TrimFront();
+			// Inserts item into the buffer so newer packets with higher BufferItem::seq
+			// placed are at the end.
+			// Returns a pointer to newly added item, or nullptr if packet with the same
+			// seq was already stored.
+			BufferItem* OrderedInsertBySeq(const BufferItem& item);
+			void Clear();
+
+		private:
+			// Vector that can hold up to maxsize of BufferItems plus 1 empty slot
+			// reserved for easier inserts.
+			std::vector<BufferItem> vctr;
+			// Vector index where data begins.
+			uint8_t startIdx{ 0 };
+			// Number of items currently stored in the vector. While inserting a new
+			// packet we may see cursize == maxsize + 1 until TrimFront() is called.
+			size_t currentSize{ 0 };
+			// Maximum number of items that can be stored in this Buffer instance.
+			size_t maxSize{ 0 };
 		};
 
 	private:
@@ -58,20 +97,43 @@ namespace RTC
 	private:
 		void StorePacket(RTC::RtpPacket* packet);
 		void ClearRetransmissionBuffer();
-		void FillRetransmissionContainer(uint16_t seq, uint16_t bitmask);
+		void FillRetransmissionContainer(uint16_t seq, uint16_t bitmask, std::vector<uint16_t>& seqs);
 		void UpdateScore(RTC::RTCP::ReceiverReport* report);
 
 	private:
 		uint32_t lostPrior{ 0 }; // Packets lost at last interval.
 		uint32_t sentPrior{ 0 }; // Packets sent at last interval.
 		std::vector<StorageItem> storage;
-		std::list<BufferItem> buffer;
+		Buffer buffer;
 		float rtt{ 0 };
 		uint16_t rtxSeq{ 0 };
 		RTC::RtpDataCounter transmissionCounter;
 	};
 
 	/* Inline instance methods */
+
+	inline RtpStreamSend::Buffer::Buffer(size_t bufferSize)
+	  : vctr(bufferSize + 1), startIdx(0), currentSize(0), maxSize(bufferSize)
+	{
+	}
+
+	inline bool RtpStreamSend::Buffer::Empty() const
+	{
+		return this->vctr.empty() || this->currentSize == 0;
+	}
+
+	inline size_t RtpStreamSend::Buffer::GetSize() const
+	{
+		return this->vctr.empty() ? 0 : this->currentSize;
+	}
+
+	inline void RtpStreamSend::Buffer::Clear()
+	{
+		this->vctr.clear();
+
+		this->startIdx    = 0;
+		this->currentSize = 0;
+	}
 
 	inline void RtpStreamSend::SetRtx(uint8_t payloadType, uint32_t ssrc)
 	{
