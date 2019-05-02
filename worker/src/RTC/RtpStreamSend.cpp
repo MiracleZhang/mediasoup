@@ -98,7 +98,7 @@ namespace RTC
 
 		(*this)[this->startIdx].packet = nullptr;
 		this->startIdx                 = (this->startIdx + 1) % this->vctr.size();
-		this->currentSize++;
+		this->currentSize--;
 	}
 
 	RtpStreamSend::BufferItem* RtpStreamSend::Buffer::OrderedInsertBySeq(
@@ -130,6 +130,8 @@ namespace RTC
 			// left.
 			if (packetSeq == currentSeq)
 			{
+				MS_ERROR("--- duplicated packet, seq:%" PRIu16 ", idx:%zu", packetSeq, idx);
+
 				// j indicates the location of a "hole" slot, we want to move the "hole"
 				// to the very right position.
 				for (size_t j{ idx }; j < this->currentSize; ++j)
@@ -143,8 +145,11 @@ namespace RTC
 
 			if (RTC::SeqManager<uint16_t>::IsSeqHigherThan(packetSeq, currentSeq))
 			{
+				MS_ERROR("--- storing item, seq:%" PRIu16 ", idx:%zu", packetSeq, idx);
+
 				// Isert here.
 				(*this)[idx] = item;
+				this->currentSize++;
 
 				retItem = std::addressof((*this)[idx]);
 
@@ -408,7 +413,6 @@ namespace RTC
 			return;
 		}
 
-		// Sum the packet seq number and the number of 16 bits cycles.
 		auto packetSeq = packet->GetSequenceNumber();
 		BufferItem bufferItem;
 
@@ -442,10 +446,14 @@ namespace RTC
 
 		if (this->buffer.GetSize() <= this->storage.size())
 		{
+			MS_ERROR("--- this->buffer.GetSize() <= this->storage.size()");
+
 			store = this->storage[this->buffer.GetSize() - 1].store;
 		}
 		else
 		{
+			MS_ERROR("--- this->buffer.GetSize() > this->storage.size()");
+
 			// Otherwise remove the first packet of the buffer and replace its storage area.
 			MS_ASSERT(
 			  this->buffer.GetSize() - 1 == this->storage.size(),
