@@ -241,6 +241,8 @@ namespace RTC
 
 			FillRetransmissionContainer(item->GetPacketId(), item->GetLostPacketBitmask(), seqs);
 
+				MS_ERROR("--- seqs.size():%zu", seqs.size());
+
 			for (auto seq : seqs)
 			{
 				auto* bufferItem = this->buffer.GetBySeq(seq);
@@ -494,6 +496,8 @@ namespace RTC
 	{
 		MS_TRACE();
 
+		MS_ERROR("****** 1");
+
 		// If NACK is not supported, exit.
 		if (!this->params.useNack)
 		{
@@ -502,9 +506,13 @@ namespace RTC
 			return;
 		}
 
+		MS_ERROR("****** 2");
+
 		// If the buffer is empty just return.
 		if (this->buffer.Empty())
 			return;
+
+		MS_ERROR("****** 3");
 
 		uint16_t firstSeq       = seq;
 		uint16_t lastSeq        = firstSeq + MaxRequestedPackets - 1;
@@ -527,8 +535,18 @@ namespace RTC
 			  bufferFirstSeq,
 			  bufferLastSeq);
 
+			// TODO
+			MS_ERROR(
+			  "requested packet range not in the buffer [seq:%" PRIu16 ", bufferFirstseq:%" PRIu16
+			  ", bufferLastseq:%" PRIu16 "]",
+			  seq,
+			  bufferFirstSeq,
+			  bufferLastSeq);
+
 			return;
 		}
+
+		MS_ERROR("****** 4");
 
 		// Look for each requested packet.
 		uint64_t now = DepLibUV::GetTime();
