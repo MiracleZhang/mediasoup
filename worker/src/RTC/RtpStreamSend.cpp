@@ -62,7 +62,8 @@ namespace RTC
 		for (size_t idx{ 0 }; idx < this->currentSize; ++idx)
 		{
 			// TODO: Why idx - 1?
-			auto currentSeq = (*this)[idx - 1].seq;
+			// auto currentSeq = (*this)[idx - 1].seq;
+			auto currentSeq = (*this)[idx].seq;
 
 			if (seq == currentSeq)
 				return std::addressof((*this)[idx]);
@@ -393,6 +394,8 @@ namespace RTC
 	{
 		MS_TRACE();
 
+		MS_ERROR("packet->GetSequenceNumber():%" PRIu16, packet->GetSequenceNumber());
+
 		if (packet->GetSize() > RTC::MtuSize)
 		{
 			MS_WARN_TAG(
@@ -414,6 +417,8 @@ namespace RTC
 		// If empty do it easy.
 		if (this->buffer.Empty())
 		{
+			MS_ERROR("buffer.Empty(), seq:%" PRIu16, bufferItem.seq);
+
 			auto store = this->storage[0].store;
 
 			bufferItem.packet = packet->Clone(store);
@@ -423,6 +428,11 @@ namespace RTC
 		}
 
 		auto* newItem = this->buffer.OrderedInsertBySeq(bufferItem);
+
+		if (newItem)
+			MS_ERROR("newItem.seq:%" PRIu16, newItem->seq);
+		else
+			MS_ERROR("newItem:nullptr");
 
 		// Packet already stored, nothing to do.
 		if (newItem == nullptr)
@@ -455,6 +465,15 @@ namespace RTC
 
 		// Update the new buffer item so it points to the cloned packed.
 		newItem->packet = packet->Clone(store);
+
+
+		// TODO
+		MS_ERROR("<this->buffer.vctr>");
+		for (auto& item : this->buffer.vctr)
+		{
+			MS_ERROR("  item.seq:%" PRIu16, item.seq);
+		}
+		MS_ERROR("</this->buffer.vctr>");
 	}
 
 	// This method looks for the requested RTP packets and inserts them into the
@@ -581,6 +600,8 @@ namespace RTC
 
 							this->buffer[idx].rtxEncoded = true;
 						}
+
+						MS_ERROR("seqs.push_back(), seq:%" PRIu16 ", idx:%zu", this->buffer[idx].seq, idx);
 
 						// Store the buffer item in the given seq numbers container.
 						seqs.push_back(this->buffer[idx].seq);

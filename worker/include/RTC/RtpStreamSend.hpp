@@ -55,7 +55,9 @@ namespace RTC
 			BufferItem* OrderedInsertBySeq(const BufferItem& item);
 			void Clear();
 
-		private:
+		// TODO
+		// private:
+		public:
 			// Vector that can hold up to maxsize of BufferItems plus 1 empty slot
 			// reserved for easier inserts.
 			std::vector<BufferItem> vctr;
