@@ -108,13 +108,13 @@ SCENARIO("NACK and RTP packets retransmission", "[rtp][rtcp]")
 		// Receive all the packets in order into the stream.
 		stream->ReceivePacket(packet1);
 		stream->ReceivePacket(packet1); // Receive duplicated packet.
+		stream->ReceivePacket(packet3);
 		stream->ReceivePacket(packet2);
 		stream->ReceivePacket(packet2); // Receive duplicated packet.
 		stream->ReceivePacket(packet2); // Receive duplicated packet again.
-		stream->ReceivePacket(packet3);
 		stream->ReceivePacket(packet1); // Receive duplicated packet again.
-		stream->ReceivePacket(packet4);
 		stream->ReceivePacket(packet5);
+		stream->ReceivePacket(packet4);
 
 		// Create a NACK item that requests all packets.
 		RTCP::FeedbackRtpNackPacket nackPacket(0, params.ssrc);
