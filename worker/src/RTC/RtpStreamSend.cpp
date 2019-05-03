@@ -51,7 +51,7 @@ namespace RTC
 	{
 		MS_TRACE();
 
-		MS_ASSERT(idx < this->maxSize, "idx out of vector maxSize capacity");
+		MS_ASSERT(idx <= this->maxSize, "idx out of vector maxSize capacity");
 
 		return this->vctr[(this->startIdx + idx) % this->vctr.size()];
 	}
