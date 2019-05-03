@@ -27,6 +27,9 @@ namespace RTC
 		  this->vctr.size() > 0 && this->maxSize > 0 && this->currentSize > 0,
 		  "Must not read First() from empty Buffer");
 
+		MS_ERROR("...... dumping buffer:");
+		TmpDump();
+
 		return this->vctr[this->startIdx];
 	}
 
@@ -37,6 +40,9 @@ namespace RTC
 		MS_ASSERT(
 		  this->vctr.size() > 0 && this->maxSize > 0 && this->currentSize > 0,
 		  "Must not read Last() from empty Buffer");
+
+		MS_ERROR("...... dumping buffer:");
+		TmpDump();
 
 		return this->vctr[(this->startIdx + this->currentSize) % this->vctr.size() - 1];
 	}
@@ -84,6 +90,9 @@ namespace RTC
 		this->vctr[idx] = item;
 		this->currentSize++;
 
+		MS_ERROR("...... dumping buffer:");
+		TmpDump();
+
 		return true;
 	}
 
@@ -97,6 +106,9 @@ namespace RTC
 		(*this)[this->startIdx].packet = nullptr;
 		this->startIdx                 = (this->startIdx + 1) % this->vctr.size();
 		this->currentSize--;
+
+		MS_ERROR("...... dumping buffer:");
+		TmpDump();
 	}
 
 	RtpStreamSend::BufferItem* RtpStreamSend::Buffer::OrderedInsertBySeq(
@@ -109,6 +121,9 @@ namespace RTC
 		  "Buffer exceeded max capacity, must trim it prior to inserting new items");
 		MS_ASSERT(
 		  this->currentSize > 0, "should only be called when there is at least one item the Buffer");
+
+		MS_ERROR("...... dumping buffer (method begin):");
+		TmpDump();
 
 		// idx is a position of the "hole" between vector elements. Inserted packets
 		// will be put in there.
@@ -187,7 +202,29 @@ namespace RTC
 			}
 		}
 
+		MS_ERROR("...... dumping buffer (method end):");
+		TmpDump();
+
 		return retItem;
+	}
+
+	void RtpStreamSend::Buffer::TmpDump() const
+	{
+		MS_TRACE();
+
+		// TODO
+		MS_ERROR(
+			"\n<BUFER DUMP [startIdx:%zu, currentSize:%zu, maxSize:%zu]",
+			this->startIdx, this->currentSize, this->maxSize);
+
+		for (auto& item : this->vctr)
+		{
+			MS_ERROR(
+				"  item.seq:%" PRIu16 ", item.packet:%s",
+				item.seq, item.packet ? "yes" : "nullptr");
+		}
+
+		MS_ERROR("</BUFER DUMP>\n");
 	}
 
 	RtpStreamSend::RtpStreamSend(
@@ -427,6 +464,9 @@ namespace RTC
 
 		MS_ERROR("packet->GetSequenceNumber():%" PRIu16, packet->GetSequenceNumber());
 
+		MS_ERROR("...... dumping buffer (method begin):");
+		this->buffer.TmpDump();
+
 		if (packet->GetSize() > RTC::MtuSize)
 		{
 			MS_WARN_TAG(
@@ -454,6 +494,9 @@ namespace RTC
 			bufferItem.packet = packet->Clone(store);
 			this->buffer.PushBack(bufferItem);
 
+			MS_ERROR("...... dumping buffer (method end 1):");
+			this->buffer.TmpDump();
+
 			return;
 		}
 
@@ -469,6 +512,9 @@ namespace RTC
 			MS_ERROR("newItem.seq:%" PRIu16, newItem->seq);
 		else
 			MS_ERROR("newItem:nullptr");
+
+		MS_ERROR("...... dumping buffer (method body):");
+		this->buffer.TmpDump();
 
 		// Packet already stored, nothing to do.
 		if (newItem == nullptr)
@@ -504,14 +550,8 @@ namespace RTC
 		// Update the new buffer item so it points to the cloned packed.
 		newItem->packet = packet->Clone(store);
 
-
-		// TODO
-		MS_ERROR("<this->buffer.vctr>");
-		for (auto& item : this->buffer.vctr)
-		{
-			MS_ERROR("  item.seq:%" PRIu16, item.seq);
-		}
-		MS_ERROR("</this->buffer.vctr>");
+		MS_ERROR("...... dumping buffer (method end):");
+		this->buffer.TmpDump();
 	}
 
 	// This method looks for the requested RTP packets and inserts them into the
@@ -523,6 +563,9 @@ namespace RTC
 	  uint16_t seq, uint16_t bitmask, std::vector<uint16_t>& seqs)
 	{
 		MS_TRACE();
+
+		MS_ERROR("...... dumping buffer (method start):");
+		this->buffer.TmpDump();
 
 		// If NACK is not supported, exit.
 		if (!this->params.useNack)

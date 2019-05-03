@@ -54,15 +54,15 @@ namespace RTC
 			// seq was already stored.
 			BufferItem* OrderedInsertBySeq(const BufferItem& item);
 			void Clear();
+			// TODO: TEMPORAL
+			void TmpDump() const;
 
-		// TODO
-		// private:
-		public:
+		private:
 			// Vector that can hold up to maxsize of BufferItems plus 1 empty slot
 			// reserved for easier inserts.
 			std::vector<BufferItem> vctr;
 			// Vector index where data begins.
-			uint8_t startIdx{ 0 };
+			size_t startIdx{ 0 };
 			// Number of items currently stored in the vector. While inserting a new
 			// packet we may see cursize == maxsize + 1 until TrimFront() is called.
 			size_t currentSize{ 0 };
