@@ -61,8 +61,6 @@ namespace RTC
 
 		for (size_t idx{ 0 }; idx < this->currentSize; ++idx)
 		{
-			// TODO: Why idx - 1?
-			// auto currentSeq = (*this)[idx - 1].seq;
 			auto currentSeq = (*this)[idx].seq;
 
 			if (seq == currentSeq)
@@ -161,6 +159,32 @@ namespace RTC
 			// the next iteration or will iterate further.
 			(*this)[idx]            = (*this)[idx - 1];
 			(*this)[idx - 1].packet = nullptr;
+
+			// Special case: We want to insert the oldest packet in the first position
+			// unless doing this will put buffer over capacity, then we do nothing but
+			// ensure that "hole" is back to the very right.
+			if (idx == 1)
+			{
+				if (this->currentSize < this->maxSize)
+				{
+					MS_ERROR("--- adding item in front, seq:%" PRIu16, packetSeq);
+
+					// Insert in front.
+					this->startIdx = this->vctr.empty() ? this->startIdx
+		                              : (this->startIdx - 1) % this->vctr.size();
+
+					this->vctr[this->startIdx] = item;
+					this->currentSize++;
+
+					retItem = std::addressof((*this)[0]);
+
+					break;
+				}
+				else
+				{
+					this->startIdx = (this->startIdx + 1) % this->vctr.size();
+				}
+			}
 		}
 
 		return retItem;
@@ -435,6 +459,21 @@ namespace RTC
 
 		uint8_t* store{ nullptr };
 
+		// Should first try inserting an item and then trimming extra packet because
+		// OrderedInsertBySeq() does not guarantee to increate the number of items
+		// (duplicates). For this reason there is always an extra storage space for a
+		// single packet.
+		auto* newItem = this->buffer.OrderedInsertBySeq(bufferItem);
+
+		if (newItem)
+			MS_ERROR("newItem.seq:%" PRIu16, newItem->seq);
+		else
+			MS_ERROR("newItem:nullptr");
+
+		// Packet already stored, nothing to do.
+		if (newItem == nullptr)
+			return;
+
 		if (this->buffer.GetSize() <= this->storage.size())
 		{
 			MS_ERROR("--- this->buffer.GetSize() <= this->storage.size()");
@@ -448,7 +487,7 @@ namespace RTC
 			// Otherwise remove the first packet of the buffer and replace its storage area.
 			MS_ASSERT(
 			  this->buffer.GetSize() - 1 == this->storage.size(),
-			  "when buffer beyond max capacity, storage should be exactly at full capacity");
+			  "when buffer has just exceeded max capacity, storage should be exactly at full capacity");
 
 			auto* firstPacket = this->buffer.First().packet;
 
@@ -461,17 +500,6 @@ namespace RTC
 			// Remove the first element in the buffer.
 			this->buffer.TrimFront();
 		}
-
-		auto* newItem = this->buffer.OrderedInsertBySeq(bufferItem);
-
-		if (newItem)
-			MS_ERROR("newItem.seq:%" PRIu16, newItem->seq);
-		else
-			MS_ERROR("newItem:nullptr");
-
-		// Packet already stored, nothing to do.
-		if (newItem == nullptr)
-			return;
 
 		// Update the new buffer item so it points to the cloned packed.
 		newItem->packet = packet->Clone(store);
