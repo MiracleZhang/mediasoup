@@ -103,7 +103,7 @@ SCENARIO("NACK and RTP packets retransmission", "[rtp][rtcp]")
 		// Create a RtpStreamSend.
 		// RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 200);
 			// TODO: Remove when bug fixed.
-			RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 3);
+			RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 5);
 
 		// Receive all the packets in order into the stream.
 		stream->ReceivePacket(packet1);
@@ -156,6 +156,30 @@ SCENARIO("NACK and RTP packets retransmission", "[rtp][rtcp]")
 		REQUIRE(rtxPacket5);
 		REQUIRE(rtxPacket5->GetSequenceNumber() == packet5->GetSequenceNumber());
 		REQUIRE(rtxPacket5->GetTimestamp() == packet5->GetTimestamp());
+
+		// TODO: TEST
+		{
+			stream->Pause();
+
+			stream->ReceivePacket(packet1);
+			stream->ReceivePacket(packet3);
+			stream->ReceivePacket(packet2);
+
+			RTCP::FeedbackRtpNackPacket nackPacket(0, params.ssrc);
+			auto* nackItem = new RTCP::FeedbackRtpNackItem(21006, 0b0000000000001111);
+
+			nackPacket.AddItem(nackItem);
+
+			REQUIRE(nackItem->GetPacketId() == 21006);
+			REQUIRE(nackItem->GetLostPacketBitmask() == 0b0000000000001111);
+
+			// This will crash because stream->Pause() called ClearRetransmissionBuffer() which
+			// does not empty buffer vctr (it must not clear it) but its items keep their seq
+			// and packet values, and honestly not sure what happens.
+			stream->ReceiveNack(&nackPacket);
+
+			REQUIRE(testRtpStreamListener.retransmittedPackets.size() == 5);
+		}
 
 		// Clean stuff.
 		delete packet1;
