@@ -214,7 +214,7 @@ namespace RTC
 
 		// TODO
 		MS_ERROR(
-			"\n<BUFER DUMP [startIdx:%zu, currentSize:%zu, maxSize:%zu]",
+			"<BUFER DUMP [startIdx:%zu, currentSize:%zu, maxSize:%zu]",
 			this->startIdx, this->currentSize, this->maxSize);
 
 		for (auto& item : this->vctr)
