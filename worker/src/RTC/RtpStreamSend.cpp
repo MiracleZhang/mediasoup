@@ -51,19 +51,14 @@ namespace RTC
 	{
 		MS_TRACE();
 
-		MS_ASSERT(idx <= this->maxSize, "idx out of vector maxSize capacity");
+		MS_ASSERT(idx < this->maxSize, "idx out of vector maxSize capacity");
 
-		idx = this->vctr.empty() ? this->startIdx + idx : (this->startIdx + idx) % this->vctr.size();
-
-		return this->vctr[idx];
+		return this->vctr[(this->startIdx + idx) % this->vctr.size()];
 	}
 
 	RtpStreamSend::BufferItem* RtpStreamSend::Buffer::GetBySeq(uint16_t seq)
 	{
 		MS_TRACE();
-
-		if (this->vctr.empty())
-			return nullptr;
 
 		for (size_t idx{ 0 }; idx < this->currentSize; ++idx)
 		{
@@ -84,8 +79,7 @@ namespace RTC
 		if (this->currentSize >= this->maxSize + 1)
 			return false;
 
-		auto idx = this->vctr.empty() ? this->startIdx
-		                              : (this->startIdx + this->currentSize) % this->vctr.size();
+		auto idx = (this->startIdx + this->currentSize) % this->vctr.size();
 
 		this->vctr[idx] = item;
 		this->currentSize++;
@@ -200,8 +194,7 @@ namespace RTC
 					MS_ERROR("--- adding item in front, seq:%" PRIu16, packetSeq);
 
 					// Insert in front.
-					this->startIdx = this->vctr.empty() ? this->startIdx
-		                              : (this->startIdx - 1) % this->vctr.size();
+					this->startIdx = (this->startIdx - 1) % this->vctr.size();
 
 					this->vctr[this->startIdx] = item;
 					this->currentSize++;
@@ -235,10 +228,12 @@ namespace RTC
 		for (auto& item : this->vctr)
 		{
 			MS_ERROR(
-				"  item.seq:%" PRIu16 ", item.packet:%s, item.packet.seq:%" PRIu16,
+				"  item.seq:%" PRIu16 ", item.packet:%s, item.packet.seq:%" PRIu16 ", item.sentTimes:%" PRIu8 ", item.rtxEncoded:%s",
 				item.seq,
 				item.packet ? "yes" : "nullptr",
-				item.packet ? item.packet->GetSequenceNumber() : 0);
+				item.packet ? item.packet->GetSequenceNumber() : (uint16_t)0,
+				item.sentTimes,
+				item.rtxEncoded ? "yes" : "no");
 		}
 
 		MS_ERROR("</BUFER DUMP>\n");

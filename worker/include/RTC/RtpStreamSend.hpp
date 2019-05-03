@@ -121,18 +121,16 @@ namespace RTC
 
 	inline bool RtpStreamSend::Buffer::Empty() const
 	{
-		return this->vctr.empty() || this->currentSize == 0;
+		return this->currentSize == 0;
 	}
 
 	inline size_t RtpStreamSend::Buffer::GetSize() const
 	{
-		return this->vctr.empty() ? 0 : this->currentSize;
+		return this->currentSize;
 	}
 
 	inline void RtpStreamSend::Buffer::Clear()
 	{
-		this->vctr.clear();
-
 		this->startIdx    = 0;
 		this->currentSize = 0;
 	}
