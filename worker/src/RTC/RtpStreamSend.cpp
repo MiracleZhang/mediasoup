@@ -44,7 +44,7 @@ namespace RTC
 		MS_ERROR("...... dumping buffer:");
 		TmpDump();
 
-		return this->vctr[(this->startIdx + this->currentSize) % this->vctr.size() - 1];
+		return this->vctr[(this->startIdx + this->currentSize - 1) % this->vctr.size()];
 	}
 
 	RtpStreamSend::BufferItem& RtpStreamSend::Buffer::operator[](size_t idx)
@@ -103,8 +103,13 @@ namespace RTC
 		if (Empty())
 			return;
 
-		(*this)[this->startIdx].packet = nullptr;
-		this->startIdx                 = (this->startIdx + 1) % this->vctr.size();
+		(*this)[this->startIdx].seq          = 0;
+		(*this)[this->startIdx].packet       = nullptr;
+		(*this)[this->startIdx].resentAtTime = 0;
+		(*this)[this->startIdx].sentTimes    = 0;
+		(*this)[this->startIdx].rtxEncoded   = false;
+
+		this->startIdx = (this->startIdx + 1) % this->vctr.size();
 		this->currentSize--;
 
 		MS_ERROR("...... dumping buffer:");
@@ -149,8 +154,12 @@ namespace RTC
 				// to the very right position.
 				for (size_t j{ idx }; j < this->currentSize; ++j)
 				{
-					(*this)[j]            = (*this)[j + 1];
-					(*this)[j + 1].packet = nullptr;
+					(*this)[j]                  = (*this)[j + 1];
+					(*this)[j + 1].seq          = 0;
+					(*this)[j + 1].packet       = nullptr;
+					(*this)[j + 1].resentAtTime = 0;
+					(*this)[j + 1].sentTimes    = 0;
+					(*this)[j + 1].rtxEncoded   = false;
 				}
 
 				break;
@@ -172,8 +181,12 @@ namespace RTC
 			// Shift current item into an empty slot on the right so the "hole" moves
 			// to the left. Then either we insert a new packet in place of "hole" on
 			// the next iteration or will iterate further.
-			(*this)[idx]            = (*this)[idx - 1];
-			(*this)[idx - 1].packet = nullptr;
+			(*this)[idx]                  = (*this)[idx - 1];
+			(*this)[idx - 1].seq          = 0;
+			(*this)[idx - 1].packet       = nullptr;
+			(*this)[idx - 1].resentAtTime = 0;
+			(*this)[idx - 1].sentTimes    = 0;
+			(*this)[idx - 1].rtxEncoded   = false;
 
 			// Special case: We want to insert the oldest packet in the first position
 			// unless doing this will put buffer over capacity, then we do nothing but
@@ -220,8 +233,10 @@ namespace RTC
 		for (auto& item : this->vctr)
 		{
 			MS_ERROR(
-				"  item.seq:%" PRIu16 ", item.packet:%s",
-				item.seq, item.packet ? "yes" : "nullptr");
+				"  item.seq:%" PRIu16 ", item.packet:%s, item.packet.seq:%" PRIu16,
+				item.seq,
+				item.packet ? "yes" : "nullptr",
+				item.packet ? item.packet->GetSequenceNumber() : 0);
 		}
 
 		MS_ERROR("</BUFER DUMP>\n");

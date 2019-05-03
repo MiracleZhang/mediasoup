@@ -103,7 +103,7 @@ SCENARIO("NACK and RTP packets retransmission", "[rtp][rtcp]")
 		// Create a RtpStreamSend.
 		// RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 200);
 			// TODO: Remove when bug fixed.
-			RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 4);
+			RtpStreamSend* stream = new RtpStreamSend(&testRtpStreamListener, params, 3);
 
 		// Receive all the packets in order into the stream.
 		stream->ReceivePacket(packet1);
