@@ -103,16 +103,19 @@ namespace RTC
 		if (Empty())
 			return;
 
-		(*this)[this->startIdx].seq          = 0;
-		(*this)[this->startIdx].packet       = nullptr;
-		(*this)[this->startIdx].resentAtTime = 0;
-		(*this)[this->startIdx].sentTimes    = 0;
-		(*this)[this->startIdx].rtxEncoded   = false;
+		MS_ERROR("...... dumping buffer (begin):");
+		TmpDump();
+
+		(*this)[0].seq          = 0;
+		(*this)[0].packet       = nullptr;
+		(*this)[0].resentAtTime = 0;
+		(*this)[0].sentTimes    = 0;
+		(*this)[0].rtxEncoded   = false;
 
 		this->startIdx = (this->startIdx + 1) % this->vctr.size();
 		this->currentSize--;
 
-		MS_ERROR("...... dumping buffer:");
+		MS_ERROR("...... dumping buffer (end):");
 		TmpDump();
 	}
 
@@ -141,7 +144,6 @@ namespace RTC
 		// packet.
 		for (; idx > 0; --idx)
 		{
-			// TODO: Why idx - 1?
 			auto currentSeq = (*this)[idx - 1].seq;
 
 			// Packet is already stored, nothing to do but shift all items back to the
